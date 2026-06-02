@@ -4,14 +4,13 @@ import altair as alt
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="E-Commerce Sales Dashboard",
+    page_title="E-Commerce Sales Dashboard (Compressed Data)",
     page_icon="🛒",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # 2. Measurement Registry (Data Dictionary)
-# This serves as the central source of truth for column metrics and units.
 MEASUREMENT_REGISTRY = {
     'InvoiceNo': {
         'Data Type': 'Categorical / ID',
@@ -62,17 +61,18 @@ MEASUREMENT_REGISTRY = {
 
 # 3. Title & Description
 st.title("🛒 Online Retail Sales Dashboard")
-st.markdown("An interactive dashboard built with Streamlit and Altair featuring an explicit **Column Measurement Registry**.")
+st.markdown("An interactive dashboard built with Streamlit and Altair processing compressed source data.")
 
 # Display the Column Measurement Registry inside an expandable panel
 with st.expander("📋 View Column Measurement Registry & Data Dictionary", expanded=False):
     registry_df = pd.DataFrame.from_dict(MEASUREMENT_REGISTRY, orient='index')
     st.dataframe(registry_df, use_container_width=True)
 
-# 4. Cached Data Loading
+# 4. Cached Data Loading (Configured for GZ Compressed File)
 @st.cache_data
 def load_data():
-    df = pd.read_csv('data.csv', encoding='ISO-8859-1')
+    # Pandas automatically infers and decompresses gzip (.gz) archives natively
+    df = pd.read_csv('compressed_data.csv.gz', encoding='ISO-8859-1', compression='gzip')
     
     # Preprocessing & calculations based on registry definitions
     df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'])
@@ -135,6 +135,7 @@ row1_col1, row1_col2 = st.columns(2)
 
 with row1_col1:
     st.markdown(f"### Monthly Revenue Trend ({MEASUREMENT_REGISTRY['TotalSales']['Unit of Measurement']})")
+    # Dynamic frequency rule based on the data length to support smooth visualization
     monthly_sales = filtered_df.set_index('InvoiceDate').resample('ME')['TotalSales'].sum().reset_index()
     
     chart_trend = alt.Chart(monthly_sales).mark_line(point=True).encode(
@@ -201,3 +202,4 @@ st.subheader("📋 Raw Data Explorer")
 show_data = st.checkbox("Show Raw Sample Data")
 if show_data:
     st.dataframe(filtered_df.head(100), use_container_width=True)
+
